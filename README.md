@@ -2,22 +2,22 @@
 
 Zenn (Japanese) + dev.to (English) dual-publishing blog platform.
 
-Write articles in Japanese on Zenn, auto-translate to English with Claude API, and publish to dev.to via GitHub Actions.
+Write articles in either language, bidirectionally sync translations with Claude API, and publish to both platforms.
 
 ## Architecture
 
 ```
-Write article (JP)
+Write/edit article (JP or EN)
   ↓
-npm run translate        ← Claude API translates JP → EN locally
+npm run sync             ← Claude API syncs translations bidirectionally
   ↓
-articles_en/ saved
+articles/ + articles_en/ updated
   ↓
 Preview both             ← Zenn (JP) localhost:18000 + dev.to (EN) localhost:13000
   ↓
 git push
   ├→ Zenn auto-publish   (GitHub integration)
-  └→ GitHub Actions      → dev.to API publishes EN version
+  └→ GitHub Actions      → validate → dev.to API publishes EN version
 ```
 
 ## Setup
@@ -61,15 +61,27 @@ npm run new:article
 
 ### 2. Write the article
 
-Edit the generated file in `articles/` in Japanese. Set `published: true` in the frontmatter when ready.
+Edit the generated file in `articles/` (Japanese) or `articles_en/` (English). Set `published: true` in the frontmatter when ready.
 
-### 3. Translate to English
+### 3. Sync translations
 
 ```bash
-npm run translate
+npm run sync                    # Sync all articles
+npm run sync -- my-article      # Sync a specific slug
+npm run sync -- --dry-run       # Preview what would be synced
+npm run sync -- --prefer ja     # Resolve conflicts using JP as source
 ```
 
-Translates articles in `articles/` → `articles_en/` using Claude API. Only changed and published articles are translated (tracked via SHA-256 hash).
+The sync script detects which side changed and translates accordingly:
+
+| Scenario | Action |
+|---|---|
+| JP only exists | Full translate JP → EN |
+| EN only exists | Full translate EN → JP |
+| JP changed | Diff sync JP → EN |
+| EN changed | Diff sync EN → JP |
+| Both changed | Conflict — use `--prefer ja` or `--prefer en` to resolve |
+| Neither changed | Skip |
 
 ### 4. Preview
 
@@ -87,25 +99,31 @@ git add -A && git commit -m "Add new article" && git push
 ```
 
 - Zenn publishes automatically via GitHub integration
-- GitHub Actions publishes the English version to dev.to
+- GitHub Actions validates published status, then publishes the English version to dev.to
 
 ## Directory Structure
 
 ```
 blog/
 ├── .claude/skills/
-│   ├── zenn-syntax.md          # Zenn Markdown syntax skill
-│   └── devto-syntax.md         # dev.to Markdown syntax skill
+│   ├── zenn-syntax.md            # Zenn Markdown syntax skill
+│   └── devto-syntax.md           # dev.to Markdown syntax skill
 ├── .github/workflows/
-│   └── publish-to-devto.yml   # Publish to dev.to on push
-├── articles/                   # Zenn articles (Japanese)
-├── articles_en/                # Translated articles (English, for dev.to)
-├── books/                      # Zenn books
+│   └── publish-to-devto.yml      # Validate + publish to dev.to on push
+├── articles/                     # Zenn articles (Japanese)
+├── articles_en/                  # Translated articles (English, for dev.to)
+├── books/                        # Zenn books
 ├── scripts/
-│   ├── translate.ts            # Claude API translation script
-│   ├── publish-to-devto.ts     # dev.to publishing script
-│   └── preview-devto.ts        # dev.to preview server
-├── .devto-mapping.json         # dev.to article ID & hash tracking
+│   ├── sync.ts                   # Bidirectional sync script
+│   ├── sync/
+│   │   ├── api.ts                # Claude API translation functions
+│   │   ├── convert.ts            # Zenn ↔ dev.to syntax conversion
+│   │   └── state.ts              # Sync state & mapping persistence
+│   ├── publish-to-devto.ts       # dev.to publishing script
+│   ├── validate-published.ts     # Pre-publish validation
+│   └── preview-devto.ts          # dev.to preview server
+├── .sync-state.json              # Per-article hash tracking for sync
+├── .devto-mapping.json           # dev.to article ID tracking
 ├── package.json
 └── tsconfig.json
 ```
@@ -117,7 +135,8 @@ blog/
 | `npm run new:article` | Create a new Zenn article scaffold |
 | `npm run preview` | Start Zenn preview server (localhost:18000) |
 | `npm run preview:devto` | Start dev.to preview server (localhost:13000) |
-| `npm run translate` | Translate changed articles JP → EN |
+| `npm run sync` | Bidirectionally sync translations between JP ↔ EN |
+| `npm run validate` | Validate published status consistency |
 | `npm run publish:devto` | Manually publish to dev.to |
 
 ## Claude Code Skills
@@ -133,8 +152,9 @@ Skills are automatically activated when working with files in the corresponding 
 
 ## Notes
 
-- Articles with `published: false` are skipped during translation and publishing
-- Translation uses SHA-256 hashing for change detection — unchanged articles are not re-translated
+- Articles with `published: false` are skipped during publishing (sync works regardless of published status)
+- Sync uses SHA-256 hashing for change detection — unchanged articles are not re-translated
+- Diff sync only updates changed sections, preserving manual edits in the target language
 - `canonical_url` is automatically set to the Zenn article URL
 - dev.to tags are limited to 4 (dev.to platform restriction)
 - Images should use absolute URLs for cross-platform compatibility
