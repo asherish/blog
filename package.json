@@ -7,9 +7,9 @@
     "new:article": "npx zenn new:article",
     "preview": "npx zenn preview --port 18000",
     "preview:devto": "npx tsx scripts/preview-devto.ts",
-    "sync": "npx tsx scripts/sync.ts",
+    "sync": "node --env-file=.env --import tsx scripts/sync.ts",
     "validate": "npx tsx scripts/validate-published.ts",
-    "publish:devto": "npx tsx scripts/publish-to-devto.ts"
+    "publish:devto": "node --env-file=.env --import tsx scripts/publish-to-devto.ts"
   },
   "repository": {
     "type": "git",

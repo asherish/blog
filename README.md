@@ -98,8 +98,8 @@ Port 18000 and 13000 are used instead of the conventional 8000 / 3000 to avoid c
 git add -A && git commit -m "Add new article" && git push
 ```
 
-- Zenn publishes automatically via GitHub integration
-- GitHub Actions validates published status, then publishes the English version to dev.to
+- Zenn publishes automatically via GitHub integration (Zenn does not provide a publishing API — it polls the linked repository and picks up articles directly)
+- GitHub Actions validates published status, then publishes the English version to dev.to via the dev.to REST API
 
 ## Directory Structure
 
