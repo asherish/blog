@@ -1,32 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
+import { loadMapping, saveMapping } from "./sync/state.js";
 
 const ARTICLES_EN_DIR = path.resolve(import.meta.dirname, "../articles_en");
-const MAPPING_PATH = path.resolve(
-  import.meta.dirname,
-  "../.devto-mapping.json"
-);
 const DEVTO_API_BASE = "https://dev.to/api";
-
-interface MappingEntry {
-  hash: string;
-  devtoId?: number;
-}
-
-type Mapping = Record<string, MappingEntry>;
-
-function loadMapping(): Mapping {
-  try {
-    return JSON.parse(fs.readFileSync(MAPPING_PATH, "utf-8"));
-  } catch {
-    return {};
-  }
-}
-
-function saveMapping(mapping: Mapping): void {
-  fs.writeFileSync(MAPPING_PATH, JSON.stringify(mapping, null, 2) + "\n");
-}
 
 interface DevtoArticlePayload {
   article: {

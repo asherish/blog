@@ -23,6 +23,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Validate published status
+        run: npx tsx scripts/validate-published.ts
+
       - name: Publish articles to dev.to
         run: npx tsx scripts/publish-to-devto.ts
         env:
