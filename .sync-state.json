@@ -54,9 +54,5 @@
   "yazi-ssh-image-preview": {
     "jaHash": "e34a6ab4fd03db7f9803001e4ac0593253654b6f3fefc98d224c6772433e0a08",
     "enHash": "b8395257b588424a0d559b172b7d506c4f88adea12e752f7b96486df322af785"
-  },
-  "test-publish": {
-    "jaHash": "d3c38778d899ba33e47c3631b62a09bac1d60f71b214526ccb1ae3d9156a7525",
-    "enHash": "62bc2f028e2f3c38337830d5ea42e001c7928dee66038baf7a647ea23bec0a59"
   }
 }
