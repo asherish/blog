@@ -1,1 +1,62 @@
-{}
+{
+  "blog-repo-setup": {
+    "jaHash": "ecb177b9c3fb72777e21a932cb5ec60c714e8538ed90f848a3faf74698673fc2",
+    "enHash": "3e45dd1be4f78781cce56e3c77735055e5bb7f7bd23b834b8699682fbb41405c"
+  },
+  "chezmoi-mise-conflict": {
+    "jaHash": "8269b3b48ffa91aa957d4ec815bdb74f9274373a2c2571c99196aa8147da6adb",
+    "enHash": "558f3467a4b286a6bdc5ca07d880c57a1362911cdeb0b93c9372bc5bc53dc757"
+  },
+  "deepwalk-node2vec-random-walk": {
+    "jaHash": "dfc1a38fdde6327ff41e227d83b87fed347ebbe96c50a6661d46eca13cfb7b8e",
+    "enHash": "49afc3084b730b477e06d4deb804c599e03769460bdb7911884e3fc3fc7a4f01"
+  },
+  "geospatial-data-sources": {
+    "jaHash": "caa45cd573652a2358c0fd8dc34b220f224448edaf1a8f27dbd0df2a931de76b",
+    "enHash": "ac17c0de2ac74f26cc716914df7a739ab8f14a2014243c8616d9cd6ca52cbee8"
+  },
+  "git-merge-rebase-github-flow": {
+    "jaHash": "a85ebef52f923c6e71e94d5b541e260036f022a3a4689800433fd91ff0517521",
+    "enHash": "a81eb1528229773960d06ecc211ae790260ed44d91fd6a8550cd2821af2d41b3"
+  },
+  "kaggle-competition-notifier": {
+    "jaHash": "735372555eb5421b077161d29e6e5b4d0117035f5a8f86c366deba1e83cc249a",
+    "enHash": "c94005461be20100317054899b8b53d0b001633db053f7566b374be320c61260"
+  },
+  "line-graph-embedding": {
+    "jaHash": "7f3a1d2881143b82c13fb9d7b92cc0c824c4851aea0c1e9c985c2af2ec0274e8",
+    "enHash": "9e7f279a279bb3a8044ffebf2c06aa9a36ebc252530a6ca974fb34a088f23381"
+  },
+  "migrate-github-repo-to-gitlab": {
+    "jaHash": "1d6614e60e81968cc4ba6e5acd614dc5832ad4ef99ae38f0e27ba8ab6522eece",
+    "enHash": "2bc054fbb30039f55d3787c5224ed8fe84fda14a33c8a8d06f38903f3d61b535"
+  },
+  "nvidia-driver-without-cuda": {
+    "jaHash": "53fb9d7ca27b9cd81eb2c515869a79267353b4c83777cbb15b3eb6cc3965317e",
+    "enHash": "d5867da1b27a9fba12b2af5ac0441fcb5afa6a042b54d74a95eff4886f45a127"
+  },
+  "ssh-copy-id": {
+    "jaHash": "25daf3dc8f9e1954ba2b6cfda34a2029826a7245526a7843fc5eb8237c392385",
+    "enHash": "317fa1d70f339a3eea0674985eb64a109827e0fa2e88b122f6b36bb0fcb4aa61"
+  },
+  "ubuntu-desktop-freeze-on-login": {
+    "jaHash": "c3158f47f48d7e800c7c167026f6787e320cac69bc870622159ffb1c80b99a1f",
+    "enHash": "0d59d1fbb4edec2b268623e953ac549e67711e716c2bd8d6766241afa75260a2"
+  },
+  "word2vec-study-notes": {
+    "jaHash": "77179dbf83000fc5cc4088fe9d9d7c8ade2ceed7b9d8e8d75f7d92acaf3768e9",
+    "enHash": "52c23f13bbfc6129986102ba5c4384a87855f88d64a592d7b4e37c83a5455cc4"
+  },
+  "yazi-markdown-preview-piper": {
+    "jaHash": "1d0983de851a34c9b809d9f39e55802c0685ab59afab70a38bf40511de93806d",
+    "enHash": "9a56f54e185c58c9d9a373df435a90f42ea709b702a8f324c99594938b9e110d"
+  },
+  "yazi-ssh-image-preview": {
+    "jaHash": "e34a6ab4fd03db7f9803001e4ac0593253654b6f3fefc98d224c6772433e0a08",
+    "enHash": "b8395257b588424a0d559b172b7d506c4f88adea12e752f7b96486df322af785"
+  },
+  "test-publish": {
+    "jaHash": "d3c38778d899ba33e47c3631b62a09bac1d60f71b214526ccb1ae3d9156a7525",
+    "enHash": "62bc2f028e2f3c38337830d5ea42e001c7928dee66038baf7a647ea23bec0a59"
+  }
+}
