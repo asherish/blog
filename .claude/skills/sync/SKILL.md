@@ -1,7 +1,7 @@
 ---
 description: Bidirectional translation sync between Zenn (JP) and dev.to (EN) articles. Detects changes, translates via Claude Code, and applies post-processing.
-user_invocable: true
-argument: "[slug] [--prefer ja|en]"
+user-invocable: true
+argument-hint: "[slug] [--prefer ja|en]"
 ---
 
 # /sync — Bidirectional Translation Sync
