@@ -10,7 +10,8 @@
       "Write(articles/*)",
       "Write(articles_en/*)",
       "Bash(npx zenn preview --port 18000)",
-      "Bash(npx tsx scripts/preview-devto.ts)"
+      "Bash(npx tsx scripts/preview-devto.ts)",
+      "Bash(npx tsx scripts/process-scheduled.ts)"
     ]
   }
 }
