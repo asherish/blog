@@ -1,12 +1,16 @@
 {
   "permissions": {
     "allow": [
+      "Bash(npx tsx scripts/sync-detect.ts)",
       "Bash(npx tsx scripts/sync-detect.ts *)",
+      "Bash(npx tsx scripts/sync-apply.ts)",
       "Bash(npx tsx scripts/sync-apply.ts *)",
       "Read(articles/*)",
       "Read(articles_en/*)",
       "Write(articles/*)",
-      "Write(articles_en/*)"
+      "Write(articles_en/*)",
+      "Bash(npx zenn preview --port 18000)",
+      "Bash(npx tsx scripts/preview-devto.ts)"
     ]
   }
 }
