@@ -113,10 +113,12 @@ git add -A && git commit -m "Add new article" && git push
 
 ```
 blog/
-├── .claude/skills/
-│   ├── zenn-syntax.md            # Zenn Markdown syntax skill
-│   ├── devto-syntax.md           # dev.to Markdown syntax skill
-│   └── sync.md                   # Bidirectional translation sync skill
+├── .claude/
+│   ├── settings.json               # Permission auto-allow for sync scripts
+│   └── skills/
+│       ├── zenn-syntax.md          # Zenn Markdown syntax skill
+│       ├── devto-syntax.md         # dev.to Markdown syntax skill
+│       └── sync/SKILL.md           # Bidirectional translation sync skill (/sync)
 ├── .github/workflows/
 │   └── publish-to-devto.yml      # Validate + publish to dev.to on push
 ├── articles/                     # Zenn articles (Japanese)
