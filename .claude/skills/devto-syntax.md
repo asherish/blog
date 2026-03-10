@@ -80,10 +80,11 @@ Use HTML `<img>` tag for width control:
 
 ## Translation Pipeline
 
-Articles in `articles_en/` are auto-generated from Zenn articles via:
+Articles in `articles_en/` are synced from Zenn articles via the `/sync` Claude Code skill:
 
-```bash
-npm run translate
+```
+/sync                    # Sync all changed articles
+/sync slug-name          # Sync a specific article
 ```
 
 Manual edits should be limited to post-translation adjustments (fixing translation issues, adjusting platform-specific syntax).

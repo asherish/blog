@@ -7,7 +7,8 @@
     "new:article": "npx zenn new:article",
     "preview": "npx zenn preview --port 18000",
     "preview:devto": "npx tsx scripts/preview-devto.ts",
-    "sync": "node --env-file=.env --import tsx scripts/sync.ts",
+    "sync": "npx tsx scripts/sync-detect.ts",
+    "sync:apply": "npx tsx scripts/sync-apply.ts",
     "validate": "npx tsx scripts/validate-published.ts",
     "publish:devto": "node --env-file=.env --import tsx scripts/publish-to-devto.ts"
   },
@@ -24,7 +25,6 @@
   },
   "homepage": "https://github.com/asherish/blog#readme",
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.78.0",
     "@types/node": "^25.3.5",
     "gray-matter": "^4.0.3",
     "marked": "^17.0.4",
