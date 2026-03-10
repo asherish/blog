@@ -3,8 +3,7 @@ title: "Ubuntu Desktop のログイン画面でフリーズしたら"
 emoji: "🐧"
 type: "tech"
 topics: ["Ubuntu", "Linux", "NVIDIA", "GPU"]
-published: false
-scheduled_publish_date: "2026-03-11"
+published: true
 ---
 
 Ubuntu Desktop をインストールしたとき、デフォルトのグラフィックス設定がハードウェアと互換性がない場合、ログイン時にフリーズすることがあります。本記事では、この問題に対する解決方法を解説します。

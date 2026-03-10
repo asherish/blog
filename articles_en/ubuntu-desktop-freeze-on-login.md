@@ -1,9 +1,8 @@
 ---
 title: "Fixing Ubuntu Desktop Freezing at the Login Screen"
-published: false
+published: true
 tags: Ubuntu, Linux, NVIDIA, GPU
 canonical_url: https://zenn.dev/asherish/articles/ubuntu-desktop-freeze-on-login
-scheduled_publish_date: "2026-03-11"
 ---
 
 When installing Ubuntu Desktop, the system may freeze at login if the default graphics settings are incompatible with the hardware. This article explains how to resolve this issue.
