@@ -9,6 +9,7 @@
     "preview:devto": "npx tsx scripts/preview-devto.ts",
     "sync": "npx tsx scripts/sync-detect.ts",
     "sync:apply": "npx tsx scripts/sync-apply.ts",
+    "schedule:check": "npx tsx scripts/process-scheduled.ts",
     "validate": "npx tsx scripts/validate-published.ts",
     "publish:devto": "node --env-file=.env --import tsx scripts/publish-to-devto.ts"
   },

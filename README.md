@@ -109,6 +109,25 @@ git add -A && git commit -m "Add new article" && git push
 - Zenn publishes automatically via GitHub integration (Zenn does not provide a publishing API — it polls the linked repository and picks up articles directly)
 - GitHub Actions validates published status, then publishes the English version to dev.to via the dev.to REST API
 
+### 6. Scheduled publishing
+
+Add `scheduled_publish_date` to frontmatter of both JP and EN articles:
+
+```yaml
+published: false
+scheduled_publish_date: "2026-03-15"
+```
+
+A GitHub Actions cron job runs daily at 00:05 JST. When the current date reaches the scheduled date, it sets `published: true` in both articles, removes `scheduled_publish_date`, commits, and pushes. This triggers the existing dev.to publish workflow, and Zenn picks up the change automatically.
+
+To check scheduled status locally:
+
+```bash
+npm run schedule:check
+```
+
+**Design note:** Zenn natively supports scheduled publishing via `published: true` + `published_at`, but this requires setting `published: true` in the Zenn article upfront. Since dev.to has no equivalent — setting `published: true` would publish immediately — using Zenn's native scheduling would break the JP/EN `published` status consistency that our validation enforces. Instead, we use a unified `scheduled_publish_date` field (kept `false` on both sides until the cron flips them simultaneously).
+
 ## Directory Structure
 
 ```
@@ -120,7 +139,8 @@ blog/
 │       ├── devto-syntax.md         # dev.to Markdown syntax skill
 │       └── sync/SKILL.md           # Bidirectional translation sync skill (/sync)
 ├── .github/workflows/
-│   └── publish-to-devto.yml      # Validate + publish to dev.to on push
+│   ├── publish-to-devto.yml      # Validate + publish to dev.to on push
+│   └── scheduled-publish.yml     # Daily cron to publish scheduled articles
 ├── articles/                     # Zenn articles (Japanese)
 ├── articles_en/                  # Translated articles (English, for dev.to)
 ├── books/                        # Zenn books
@@ -131,6 +151,7 @@ blog/
 │   │   ├── convert.ts            # Zenn ↔ dev.to syntax conversion
 │   │   └── state.ts              # Sync state & mapping persistence
 │   ├── publish-to-devto.ts       # dev.to publishing script
+│   ├── process-scheduled.ts      # Scheduled publish processor
 │   ├── validate-published.ts     # Pre-publish validation
 │   └── preview-devto.ts          # dev.to preview server
 ├── .sync-state.json              # Per-article hash tracking for sync
@@ -148,6 +169,7 @@ blog/
 | `npm run preview:devto` | Start dev.to preview server (localhost:13000) |
 | `npm run sync` | Detect translation changes (JSON output) |
 | `npm run sync:apply` | Apply post-translation processing |
+| `npm run schedule:check` | Check and process scheduled articles |
 | `npm run validate` | Validate published status consistency |
 | `npm run publish:devto` | Manually publish to dev.to |
 
@@ -165,6 +187,7 @@ Skills are automatically activated when working with files in the corresponding 
 
 ## Notes
 
+- Scheduled publishing uses `scheduled_publish_date` in frontmatter — a daily cron job auto-publishes when the date arrives
 - Articles with `published: false` are skipped during publishing (sync works regardless of published status)
 - Sync uses SHA-256 hashing for change detection — unchanged articles are not re-translated
 - Diff sync only updates changed sections, preserving manual edits in the target language

@@ -204,8 +204,11 @@ export function buildDevtoFrontmatter(
     `published: ${zennFrontmatter.published === true}`,
     `tags: ${tags.join(", ")}`,
     `canonical_url: ${canonicalUrl}`,
-    "---",
   ];
+  if (zennFrontmatter.scheduled_publish_date) {
+    lines.push(`scheduled_publish_date: "${zennFrontmatter.scheduled_publish_date}"`);
+  }
+  lines.push("---");
 
   return lines.join("\n");
 }
@@ -233,8 +236,11 @@ export function buildZennFrontmatter(
     `type: "tech"`,
     `topics: [${tags.map((t) => `"${t}"`).join(", ")}]`,
     `published: ${devtoFrontmatter.published === true}`,
-    "---",
   ];
+  if (devtoFrontmatter.scheduled_publish_date) {
+    lines.push(`scheduled_publish_date: "${devtoFrontmatter.scheduled_publish_date}"`);
+  }
+  lines.push("---");
 
   return lines.join("\n");
 }
