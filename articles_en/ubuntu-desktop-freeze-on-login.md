@@ -1,6 +1,7 @@
 ---
 title: "Fixing Ubuntu Desktop Freezing at the Login Screen"
-published: true
+published: false
+scheduled_publish_date: "2026-03-12"
 tags: Ubuntu, Linux, NVIDIA, GPU
 canonical_url: https://zenn.dev/asherish/articles/ubuntu-desktop-freeze-on-login
 ---
