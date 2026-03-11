@@ -118,7 +118,7 @@ published: false
 scheduled_publish_date: "2026-03-15"
 ```
 
-A GitHub Actions cron job runs daily at 00:05 JST. When the current date reaches the scheduled date, it sets `published: true` in both articles, removes `scheduled_publish_date`, commits, and pushes. This triggers the existing dev.to publish workflow, and Zenn picks up the change automatically.
+A GitHub Actions cron job runs daily at 00:05 JST. When the current date reaches the scheduled date, it sets `published: true` in both articles, removes `scheduled_publish_date`, publishes the English version to dev.to, commits, and pushes. Zenn picks up the change automatically via GitHub integration.
 
 To check scheduled status locally:
 
