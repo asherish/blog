@@ -4,11 +4,12 @@ emoji: "🏗️"
 type: "tech"
 topics: ["Zenn", "devto", "ClaudeCode", "GitHubActions"]
 published: false
+scheduled_publish_date: "2026-03-21"
 ---
 
-この記事は、いま読んでいるこのブログの基盤そのものについての記事である。
+この記事は、Zenn（日本語）と dev.to（英語）の 2 つのプラットフォームに、1 回の `git push` で同時に公開されています。その仕組みを紹介します。
 
-Zenn で日本語記事を書きつつ、同じ内容を英語に翻訳して dev.to にも公開したい。手動で翻訳するのは面倒だし、プラットフォームごとに Markdown の方言が微妙に違う。それを全部自動化するブログリポジトリを作ったので、仕組みを紹介する。ソースコードは以下のリポジトリで公開している。
+[Zenn](https://zenn.dev/) は日本で人気のある技術ブログプラットフォームで、dev.to に似ています。Zenn で日本語記事を書きつつ、同じ内容を英語に翻訳して dev.to にも公開したいと考えました。しかし、手動で翻訳するのは面倒ですし、2 つのプラットフォームは Markdown の方言が微妙に異なります。そこで、ワークフロー全体を自動化しました。ソースコードは以下のリポジトリで公開しています。
 
 https://github.com/asherish/blog
 
@@ -35,7 +36,7 @@ git push
   └→ GitHub Actions      → バリデーション → dev.to API で英語版を公開
 ```
 
-記事を書いて `/sync` を実行し、`git push` するだけで 2 つのプラットフォームに公開できる。
+記事を書いて `/sync` を実行し、`git push` するだけで 2 つのプラットフォームに公開できます。
 
 ## ディレクトリ構成
 
@@ -71,11 +72,11 @@ blog/
 
 ## 双方向翻訳同期
 
-このリポジトリの中心となる機能が `/sync` コマンドで動く双方向翻訳同期だ。これは Claude Code のカスタムスキルとして実装されており、変更検出・翻訳・構文変換・状態更新をワンコマンドで行う。
+このリポジトリの中心は `/sync` コマンドです。これは [Claude Code](https://docs.anthropic.com/en/docs/claude-code) のカスタムスキルで、変更検出・翻訳・構文変換・状態更新をワンコマンドで実行します。
 
-### 変更検出の仕組み
+### 変更検出
 
-各記事の内容を SHA-256 でハッシュ化し、`.sync-state.json` に保存している。`/sync` を実行すると、まず `sync-detect.ts` が現在のハッシュと保存済みハッシュを比較して、どちら側が変更されたかを判定する。
+各記事は SHA-256 でハッシュ化され、`.sync-state.json` で追跡されています。`/sync` を実行すると、現在のハッシュと保存済みハッシュを比較して、どちら側が変更されたかを判定します。
 
 | 状態 | アクション |
 |------|-----------|
@@ -86,151 +87,61 @@ blog/
 | 両方変更された | コンフリクト → `--prefer ja` or `--prefer en` で解決 |
 | 変更なし | スキップ |
 
-### 翻訳パイプライン
+### 3 ステップのパイプライン
 
-翻訳は 3 ステップで行われる。
+**Step 1 — 検出**（`sync-detect.ts`）: ハッシュを比較し、翻訳が必要な記事とその方向を JSON で出力します。
 
-**Step 1: 変更検出**（`sync-detect.ts`）
+**Step 2 — 翻訳**（Claude Code）: ソース記事を読み、翻訳した本文をターゲットファイルに書き出します。コードブロック・インラインコード・URL・コマンド名はそのまま保持します。プラットフォーム固有の構文（`:::message`、`$$` など）も変換せずに残します。構文変換は次のステップで行うためです。
 
-ファイルのハッシュを比較し、翻訳が必要な記事とその方向を JSON で出力する。
+**Step 3 — 後処理**（`sync-apply.ts`）: Zenn ↔ dev.to の構文を正規表現で変換し、ターゲット側のフロントマターを生成し、`.sync-state.json` を更新します。
 
-**Step 2: 翻訳**（Claude Code 自身）
-
-Claude Code がソース記事を読み、本文を翻訳してターゲットファイルに書き出す。翻訳時のルールとして、コードブロック・インラインコード・URL・コマンド名はそのまま保持し、プラットフォーム固有の Markdown 構文（`:::message`、`$$` など）も変換せずに残す。構文変換は次のステップで行うためだ。
-
-**Step 3: 後処理**（`sync-apply.ts`）
-
-翻訳された本文に対して以下の処理を行う。
-
-1. Zenn ↔ dev.to の構文変換（後述）
-2. ターゲット側のフロントマター生成
-3. `.sync-state.json` の更新
-
-翻訳と構文変換を別ステップに分離したことで、翻訳プロンプトがシンプルになり、構文変換のロジックを正規表現で確実に処理できるようになった。
+翻訳と構文変換を分離することで、翻訳プロンプトがシンプルになり、機械的な変換は正規表現で確実に処理できます。
 
 ### 使い方
 
-```
+```bash
 /sync                    # 全記事を同期
 /sync my-article         # 特定の記事だけ同期
 /sync --prefer ja        # コンフリクトを日本語優先で解決
 /sync --prefer en        # コンフリクトを英語優先で解決
 ```
 
-変更検出だけを行いたい場合は npm スクリプトを直接実行できる。
+変更検出だけを行うこともできます。
 
 ```bash
-npm run sync                    # 全記事の変更検出（JSON 出力）
-npm run sync -- my-article      # 特定の記事の変更検出
+npm run sync                    # 全記事（JSON 出力）
+npm run sync -- my-article      # 特定の記事
 ```
 
-### 初期設計との違い：Claude API から Claude Code へ
+### なぜ Claude API ではなく Claude Code なのか
 
-初期設計では Claude API を直接呼び出す TypeScript スクリプト（`sync.ts` + `api.ts`）で翻訳を行っていた。しかし、以下の理由で Claude Code のスキルに移行した。
+初期バージョンでは TypeScript（`sync.ts` + `api.ts`）から直接 Claude API を呼び出していました。Claude Code のスキルに切り替えた理由は以下の通りです。
 
-- **API キー管理が不要**: Claude Code 自身が翻訳するため、`.env` に `ANTHROPIC_API_KEY` を設定する必要がない
-- **翻訳品質の向上**: Claude Code は記事全体のコンテキストを把握した上で翻訳できる。API 経由だとプロンプトの長さ制約やトークンコストの最適化を考慮する必要があった
-- **デバッグが容易**: 翻訳結果をその場で確認・修正でき、再実行も `/sync` 一発で済む
-- **並列実行**: Claude Code のバックグラウンドエージェントを使えば、複数記事の翻訳を並列実行できる
-
-移行に伴い、`sync.ts` と `api.ts` は削除され、変更検出（`sync-detect.ts`）と後処理（`sync-apply.ts`）のスクリプトに再構成された。
+- **API キー不要** — Claude Code 自身が翻訳するため、`.env` に `ANTHROPIC_API_KEY` を設定する必要がありません
+- **翻訳品質の向上** — 記事全体のコンテキストを把握した翻訳が可能で、プロンプト長の制約を回避できます
+- **インタラクティブなデバッグ** — 翻訳結果をその場で確認・修正でき、`/sync` で再実行できます
+- **並列実行** — Claude Code のバックグラウンドエージェントで複数記事を同時に翻訳できます
 
 ## Zenn ↔ dev.to の構文変換
 
-Zenn と dev.to は同じ Markdown ベースだが、独自拡張の構文が異なる。以下に主要な変換を示す。
+両プラットフォームとも Markdown ベースですが、独自の拡張構文が異なります。コンバーターは以下の変換を自動で処理します。
 
-### メッセージボックス
+| 機能 | Zenn | dev.to |
+|------|------|--------|
+| 情報ボックス | `:::message ... :::` | `> ℹ️ ...` |
+| 警告ボックス | `:::message alert ... :::` | `> ⚠️ ...` |
+| アコーディオン | `:::details Title ... :::` | `{% details Title %} ... {% enddetails %}` |
+| ブロック数式 | `$$ ... $$` | `{% katex %} ... {% endkatex %}` |
+| インライン数式 | `$...$` | `{% katex inline %}...{% endkatex %}` |
+| コードファイル名 | `` ```js:app.js `` | `` ```js `` + `// app.js` コメント |
+| 画像幅指定 | `![alt](url =500x)` | `<img src="url" alt="alt" width="500">` |
+| 脚注 | `[^1]: text` | `**Notes:** 1. text` セクション |
 
-```markdown
-<!-- Zenn -->
-:::message
-情報メッセージ
-:::
+すべての変換は正規表現ベースで、双方向に対応しています。
 
-<!-- dev.to -->
-> ℹ️ 情報メッセージ
-```
+### フロントマター
 
-### アコーディオン
-
-```markdown
-<!-- Zenn -->
-:::details タイトル
-折りたたみコンテンツ
-:::
-
-<!-- dev.to -->
-{% details タイトル %}
-折りたたみコンテンツ
-{% enddetails %}
-```
-
-### 数式
-
-```markdown
-<!-- Zenn：ブロック数式 -->
-$$
-e^{i\pi} + 1 = 0
-$$
-
-<!-- dev.to：ブロック数式 -->
-{% katex %}
-e^{i\pi} + 1 = 0
-{% endkatex %}
-```
-
-```markdown
-<!-- Zenn：インライン数式 -->
-$e^{i\pi} + 1 = 0$
-
-<!-- dev.to：インライン数式 -->
-{% katex inline %}e^{i\pi} + 1 = 0{% endkatex %}
-```
-
-### コードブロックのファイル名
-
-````markdown
-<!-- Zenn -->
-```js:filename.js
-const x = 1;
-```
-
-<!-- dev.to -->
-```js
-// filename.js
-const x = 1;
-```
-````
-
-### 画像の幅指定
-
-```markdown
-<!-- Zenn -->
-![alt](url =500x)
-
-<!-- dev.to -->
-<img src="url" alt="alt" width="500">
-```
-
-### 脚注
-
-```markdown
-<!-- Zenn -->
-本文[^1]。
-[^1]: 脚注の内容
-
-<!-- dev.to -->
-本文[^1]。
----
-**Notes:**
-1. 脚注の内容
-```
-
-これらの変換は正規表現ベースで実装しており、双方向（Zenn → dev.to、dev.to → Zenn）に対応している。
-
-### フロントマターの変換
-
-フロントマターもプラットフォームごとに形式が異なる。
+フロントマターもプラットフォームごとに形式が異なります。
 
 ```yaml
 # Zenn
@@ -251,33 +162,24 @@ canonical_url: https://zenn.dev/asherish/articles/slug
 ---
 ```
 
-dev.to 側には `canonical_url` を自動で付与し、Zenn の記事を正規 URL として指定している。これにより SEO 上の重複コンテンツ問題を回避できる。また、dev.to のタグは最大 4 つという制限があるため、Zenn の topics から先頭 4 つを切り出して使っている。
+dev.to 側には `canonical_url` が自動で付与され、Zenn 記事を正規 URL として指定します。これにより SEO の重複コンテンツ問題を回避できます。dev.to のタグは最大 4 つのため、Zenn の topics から先頭 4 つのみ使用します。
 
-## プレビュー
+## ローカルプレビュー
 
-### Zenn プレビュー
-
-Zenn CLI の組み込みプレビューサーバーを使う。
+両プラットフォームをローカルでプレビューできます。
 
 ```bash
-npm run preview  # localhost:18000
+npm run preview        # Zenn  → localhost:18000
+npm run preview:devto  # dev.to → localhost:13000
 ```
 
-### dev.to プレビュー
+Zenn プレビューは公式の Zenn CLI を使用します。dev.to プレビューは `articles_en/` の Markdown を `marked` でレンダリングする軽量 HTTP サーバーです。ポート番号は通常の 8000 / 3000 に 10,000 を足して、Next.js や Express の開発サーバーとの衝突を避けています。
 
-dev.to 向けの記事をプレビューするために、シンプルな HTTP サーバーを自前で実装した。`articles_en/` 内の Markdown を `marked` ライブラリでレンダリングし、dev.to 風の見た目で表示する。
+## GitHub Actions による公開
 
-```bash
-npm run preview:devto  # localhost:13000
-```
+**Zenn** には公開 API がありません。連携した GitHub リポジトリをポーリングし、`articles/` を自動で取り込みます。`git push` するだけで完了です。
 
-ポート番号は従来の 8000 / 3000 に 10000 を足した 18000 / 13000 を使っている。Next.js や Express などの開発サーバーとポートが衝突しないようにするためだ。
-
-## GitHub Actions による自動公開
-
-Zenn には記事を公開するための API が存在しない。Zenn の公開メカニズムは、連携した GitHub リポジトリを Zenn 側がポーリングし、`articles/` の内容を直接取り込むというプル型の仕組みだ。そのため、Zenn 側の公開処理はこのリポジトリには一切含まれていない。`git push` すれば Zenn が勝手に拾ってくれる。
-
-一方、dev.to は REST API（`POST /api/articles`、`PUT /api/articles/{id}`）を公開しているため、GitHub Actions から能動的に記事を作成・更新できる。`articles_en/` 配下のファイルが `main` ブランチに push されると、GitHub Actions が起動する。
+**dev.to** は REST API があるため、GitHub Actions で処理します。`main` ブランチへの push で `articles_en/` が変更された場合に起動します。
 
 ```yaml
 on:
@@ -286,22 +188,22 @@ on:
     paths: ['articles_en/**']
 ```
 
-ワークフローは以下のステップで構成される。
+ワークフローは 3 つのステップで構成されています。
 
-1. **バリデーション**: 日本語記事と英語記事の `published` ステータスが一致しているかチェックする。片方だけ `published: true` になっていると公開事故になるため、この不整合を検出してワークフローを停止する
-2. **dev.to API で公開**: 英語記事を dev.to API で公開する。初回は `POST /articles` で新規作成し、2 回目以降は `PUT /articles/{id}` で更新する
-3. **マッピング更新**: 記事の slug と dev.to の記事 ID の対応を `.devto-mapping.json` に保存し、コミットする。これにより次回以降は同じ記事を更新できる
+1. **バリデーション** — 日本語記事と英語記事の `published` ステータスが一致しているかチェックします。不一致（片方が `true`、もう片方が `false`）は公開事故の原因になるため、ワークフローを停止します。
+2. **公開** — dev.to API で `POST /api/articles`（初回）または `PUT /api/articles/{id}`（更新）を呼び出します。
+3. **マッピング保存** — slug と dev.to 記事 ID の対応を `.devto-mapping.json` にコミットし、次回以降の更新に使用します。
 
 ## 予約公開
 
-特定の日付に記事を自動公開する仕組みも用意した。両方の記事のフロントマターに `scheduled_publish_date` を追加する。
+特定の日付に公開したい場合は、両方の記事のフロントマターに `scheduled_publish_date` を追加します。
 
 ```yaml
 published: false
 scheduled_publish_date: "2026-03-15"
 ```
 
-GitHub Actions の cron ジョブが毎日 00:05 JST に起動し、予約日を過ぎた記事を自動で `published: true` に書き換え、dev.to API で英語版を公開し、コミット・プッシュする。Zenn 側は GitHub からの自動取り込みで公開される。
+GitHub Actions の cron が毎日 00:05 JST に起動し、予約日を過ぎた記事の `published` を `true` に書き換え、dev.to API で英語版を公開し、コミットします。Zenn 側は自動で変更を取り込みます。
 
 ```
 scheduled-publish.yml (毎日 00:05 JST cron)
@@ -316,39 +218,31 @@ publish-to-devto.ts
   └→ Zenn 自動公開（GitHub 連携）
 ```
 
-ローカルで予約状況を確認するには以下のコマンドを使う。
-
-```bash
-npm run schedule:check
-```
+ローカルで予約状況を確認するには `npm run schedule:check` を使います。
 
 ### なぜ Zenn ネイティブの予約投稿を使わないのか
 
-Zenn には `published: true` と `published_at` を組み合わせたネイティブの予約投稿機能がある。しかし、この仕組みは Zenn 側で `published: true` を先に設定する必要がある。一方、dev.to には同等の機能がなく、`published: true` にした瞬間に即座に公開されてしまう。
-
-つまり、Zenn のネイティブ予約を使うと、Zenn 側は `published: true`、dev.to 側は `published: false` という不一致状態になり、バリデーションスクリプト（`validate-published.ts`）がエラーを出す。両プラットフォームの `published` ステータスを常に一致させるという設計原則を維持するため、独自の `scheduled_publish_date` フィールドで統一管理し、cron で両方同時に公開する方式を採用した。
+Zenn には `published: true` と `published_at` を組み合わせた予約投稿機能がありますが、Zenn 側で先に `published: true` にする必要があります。一方、dev.to には同等の機能がなく、`published: true` にした瞬間に即公開されます。Zenn のネイティブ予約を使うと 2 つのプラットフォームの状態が不一致になり、バリデーションスクリプトがエラーを出します。そこで、独自の `scheduled_publish_date` フィールドで統一管理し、cron で両方同時に公開する方式を採用しました。
 
 ## Claude Code スキル
 
-このリポジトリには Claude Code 用のスキルファイルが含まれている。
+リポジトリには 3 つの Claude Code スキルファイルが含まれています。
 
-| スキル | トリガー | 説明 |
+| スキル | トリガー | 機能 |
 |--------|----------|------|
-| `sync` | `/sync` コマンド | 双方向翻訳同期（変更検出・翻訳・構文変換・状態更新） |
-| `zenn-syntax` | `articles/` 配下のファイル編集時 | Zenn Markdown 記法リファレンス |
-| `devto-syntax` | `articles_en/` 配下のファイル編集時 | dev.to Liquid タグ記法リファレンス |
+| `sync` | `/sync` コマンド | 双方向翻訳同期 |
+| `zenn-syntax` | `articles/` の編集時 | Zenn 記法リファレンスを読み込み |
+| `devto-syntax` | `articles_en/` の編集時 | dev.to 記法リファレンスを読み込み |
 
-`zenn-syntax` と `devto-syntax` は、対応するディレクトリのファイルを編集するときに自動的に読み込まれる。これにより、Claude Code で記事を書くときにプラットフォーム固有の構文を間違えることなく使える。
-
-また、`.claude/settings.json` で同期スクリプトの実行と記事ファイルの読み書きの権限を自動許可している。これにより、バックグラウンドエージェントで複数記事を並列翻訳する際にも、権限の承認プロンプトで止まることがない。
+構文スキルは対応するディレクトリのファイルを編集するときに自動的に読み込まれ、Claude Code が常に正しいプラットフォームの Markdown を使えるようにします。`.claude/settings.json` でスクリプト実行とファイル I/O の権限を事前に許可しており、バックグラウンドエージェントで並列翻訳する際にも承認プロンプトで止まりません。
 
 ## まとめ
 
-このリポジトリを作ったことで、以下のワークフローが実現できた。
+普段のワークフローはこのようになっています。
 
 1. `articles/` に日本語で記事を書く
 2. `/sync` で英語版を生成する
 3. `npm run preview` / `npm run preview:devto` でプレビューする
 4. `git push` で Zenn と dev.to の両方に公開される
 
-翻訳を Claude Code のスキルとして実装したことで、API キーの管理が不要になり、翻訳結果をその場で確認・修正できるようになった。差分同期の仕組みがあるので、翻訳結果を手動で微調整しても次の同期で上書きされない。全体として、日本語で記事を書くという本来の作業に集中できるようになった。
+Claude Code が翻訳を直接担当するため、API キーの管理が不要で、翻訳結果をその場で確認・修正できます。差分同期の仕組みにより、翻訳結果を手動で微調整しても次の同期で上書きされません。日本語で記事を書くだけで、あとはすべて自動化されています。

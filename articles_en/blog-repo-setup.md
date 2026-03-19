@@ -2,28 +2,29 @@
 title: "Building a Dual-Publishing Blog Platform for Zenn and dev.to"
 published: false
 tags: Zenn, devto, ClaudeCode, GitHubActions
+scheduled_publish_date: "2026-03-21"
 canonical_url: https://zenn.dev/asherish/articles/blog-repo-setup
 ---
 
-This article is about the very infrastructure behind the blog you are reading right now.
+This very article was published to two platforms at once — [Zenn](https://zenn.dev/) (in Japanese) and dev.to (the English version you're reading now) — from a single `git push`. Here's how I built the system that makes it possible.
 
-I wanted to write articles in Japanese on Zenn while also publishing the same content translated into English on dev.to. Translating manually is tedious, and each platform has slightly different Markdown dialects. So I built a blog repository that automates all of this, and here I'll introduce how it works. The source code is available in the following repository.
+[Zenn](https://zenn.dev/) is a popular tech blogging platform in Japan, similar to dev.to. I write articles in Japanese on Zenn and want the same content available in English on dev.to. But translating by hand is tedious, and the two platforms have subtly different Markdown dialects. So I automated the entire workflow. The source code is public:
 
-https://github.com/asherish/blog
+{% github asherish/blog %}
 
-## What I Wanted to Achieve
+## Goals
 
-- Write an article in Japanese and have the English version auto-generated (and vice versa)
-- Automatically convert Markdown syntax differences between Zenn and dev.to
-- Publish to both platforms just by running `git push`
+- Write in Japanese, get the English version auto-generated (and vice versa)
+- Convert Markdown syntax differences between Zenn and dev.to automatically
+- Publish to both platforms with a single `git push`
 - Preview both platforms locally
 
-## Overall Architecture
+## How It Works (The Big Picture)
 
 ```
 Write an article (Japanese or English)
   ↓
-/sync                    ← Claude Code handles translation, syntax conversion, and state updates
+/sync                    ← Claude Code translates + converts syntax + updates state
   ↓
 articles/ + articles_en/ are updated
   ↓
@@ -31,10 +32,10 @@ Local preview            ← Zenn (localhost:18000) + dev.to (localhost:13000)
   ↓
 git push
   ├→ Zenn auto-publish   (GitHub integration)
-  └→ GitHub Actions      → Validation → Publish English version via dev.to API
+  └→ GitHub Actions      → Validate → Publish to dev.to via API
 ```
 
-Write an article, run `/sync`, run `git push`, and you're published on two platforms.
+That's it: write, `/sync`, `git push` — published on two platforms.
 
 ## Directory Structure
 
@@ -70,11 +71,11 @@ blog/
 
 ## Bidirectional Translation Sync
 
-The core feature of this repository is the bidirectional translation sync triggered by the `/sync` command. It is implemented as a custom Claude Code skill that performs change detection, translation, syntax conversion, and state updates in a single command.
+The heart of this repo is the `/sync` command — a custom [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill that detects changes, translates articles, converts syntax, and updates state in one shot.
 
-### How Change Detection Works
+### Change Detection
 
-Each article's content is hashed with SHA-256 and stored in `.sync-state.json`. When `/sync` is executed, `sync-detect.ts` first compares the current hash with the stored hash to determine which side has changed.
+Every article is SHA-256 hashed and tracked in `.sync-state.json`. When you run `/sync`, the script compares current hashes against stored ones to figure out what changed:
 
 | State | Action |
 |-------|--------|
@@ -85,150 +86,61 @@ Each article's content is hashed with SHA-256 and stored in `.sync-state.json`. 
 | Both were modified | Conflict → resolve with `--prefer ja` or `--prefer en` |
 | No changes | Skip |
 
-### Translation Pipeline
+### The Three-Step Pipeline
 
-Translation is performed in three steps.
+**Step 1 — Detect** (`sync-detect.ts`): Compares hashes and outputs which articles need translation (and in which direction) as JSON.
 
-**Step 1: Change Detection** (`sync-detect.ts`)
+**Step 2 — Translate** (Claude Code): Reads the source article and writes the translated body to the target file. Code blocks, inline code, URLs, and command names are preserved as-is. Platform-specific syntax (`:::message`, `$$`, etc.) is also left untouched — syntax conversion happens in the next step.
 
-Compares file hashes and outputs the articles that need translation along with their direction as JSON.
+**Step 3 — Post-process** (`sync-apply.ts`): Converts Zenn ↔ dev.to syntax via regex, generates the target-side frontmatter, and updates `.sync-state.json`.
 
-**Step 2: Translation** (Claude Code itself)
-
-Claude Code reads the source article and translates the body content into the target file. Translation rules dictate that code blocks, inline code, URLs, and command names are preserved as-is, and platform-specific Markdown syntax (`:::message`, `$$`, etc.) is left unconverted. This is because syntax conversion is handled in the next step.
-
-**Step 3: Post-processing** (`sync-apply.ts`)
-
-Performs the following operations on the translated body:
-
-1. Zenn ↔ dev.to syntax conversion (described below)
-2. Target-side frontmatter generation
-3. `.sync-state.json` update
-
-By separating translation and syntax conversion into different steps, the translation prompt stays simple, and syntax conversion logic can be handled reliably with regular expressions.
+Separating translation from syntax conversion keeps the translation prompt clean and lets regex handle the mechanical conversions reliably.
 
 ### Usage
 
-```
+```bash
 /sync                    # Sync all articles
 /sync my-article         # Sync a specific article only
-/sync --prefer ja        # Resolve conflicts with Japanese as source
-/sync --prefer en        # Resolve conflicts with English as source
+/sync --prefer ja        # Resolve conflicts — Japanese wins
+/sync --prefer en        # Resolve conflicts — English wins
 ```
 
-If you only want to run the change detection, you can execute the npm script directly.
+You can also run change detection alone:
 
 ```bash
-npm run sync                    # Change detection for all articles (JSON output)
-npm run sync -- my-article      # Change detection for a specific article
+npm run sync                    # All articles (JSON output)
+npm run sync -- my-article      # Single article
 ```
 
-### Evolution from Initial Design: Claude API to Claude Code
+### Why Claude Code Instead of the Claude API?
 
-The initial design used TypeScript scripts (`sync.ts` + `api.ts`) that called the Claude API directly for translation. However, I migrated to a Claude Code skill for the following reasons:
+The first version called the Claude API directly from TypeScript (`sync.ts` + `api.ts`). I switched to a Claude Code skill because:
 
-- **No API key management**: Since Claude Code itself handles the translation, there's no need to configure `ANTHROPIC_API_KEY` in `.env`
-- **Improved translation quality**: Claude Code can translate with full context of the entire article. With the API approach, prompt length constraints and token cost optimization had to be considered
-- **Easier debugging**: Translation results can be reviewed and corrected on the spot, and re-running is just a `/sync` away
-- **Parallel execution**: Using Claude Code's background agents, multiple articles can be translated in parallel
-
-With this migration, `sync.ts` and `api.ts` were removed and restructured into a change detection script (`sync-detect.ts`) and a post-processing script (`sync-apply.ts`).
+- **No API key needed** — Claude Code handles the translation itself; no `ANTHROPIC_API_KEY` in `.env`
+- **Better quality** — full article context in every translation, no prompt-length workarounds
+- **Interactive debugging** — review and fix translations on the spot, re-run with `/sync`
+- **Parallel execution** — Claude Code's background agents can translate multiple articles at once
 
 ## Zenn ↔ dev.to Syntax Conversion
 
-Zenn and dev.to are both Markdown-based, but their custom extension syntax differs. Here are the key conversions.
+Both platforms use Markdown, but each has its own extensions. The converter handles these automatically — here's what it translates:
 
-### Message Boxes
+| Feature | Zenn | dev.to |
+|---------|------|--------|
+| Info box | `:::message ... :::` | `> ℹ️ ...` |
+| Warning box | `:::message alert ... :::` | `> ⚠️ ...` |
+| Accordion | `:::details Title ... :::` | `{% details Title %} ... {% enddetails %}` |
+| Block math | `$$ ... $$` | `{% katex %} ... {% endkatex %}` |
+| Inline math | `$...$` | `{% katex inline %}...{% endkatex %}` |
+| Code filename | `` ```js:app.js `` | `` ```js `` + `// app.js` comment |
+| Image width | `![alt](url =500x)` | `<img src="url" alt="alt" width="500">` |
+| Footnotes | `[^1]: text` | `**Notes:** 1. text` section |
 
-```markdown
-<!-- Zenn -->
-> ℹ️ Info message
+All conversions are regex-based and work in both directions.
 
-<!-- dev.to -->
-> ℹ️ Info message
-```
+### Frontmatter
 
-### Accordions
-
-```markdown
-<!-- Zenn -->
-{% details Title %}
-Collapsible content
-{% enddetails %}
-
-<!-- dev.to -->
-{% details Title %}
-Collapsible content
-{% enddetails %}
-```
-
-### Math Equations
-
-```markdown
-<!-- Zenn: Block math -->
-{% katex %}
-e^{i\pi} + 1 = 0
-{% endkatex %}
-
-<!-- dev.to: Block math -->
-{% katex %}
-e^{i\pi} + 1 = 0
-{% endkatex %}
-```
-
-```markdown
-<!-- Zenn: Inline math -->
-{% katex inline %}e^{i\pi} + 1 = 0{% endkatex %}
-
-<!-- dev.to: Inline math -->
-{% katex inline %}e^{i\pi} + 1 = 0{% endkatex %}
-```
-
-### Code Block Filenames
-
-````markdown
-<!-- Zenn -->
-```js
-// filename.js
-const x = 1;
-```
-
-<!-- dev.to -->
-```js
-// filename.js
-const x = 1;
-```
-````
-
-### Image Width
-
-```markdown
-<!-- Zenn -->
-<img src="url" alt="alt" width="500">
-
-<!-- dev.to -->
-<img src="url" alt="alt" width="500">
-```
-
-### Footnotes
-
-```markdown
-<!-- Zenn -->
-Body text[^1].
-
-
-<!-- dev.to -->
-Body text[^1].
----
-**Notes:**
-1. Footnote content
-```
-
-These conversions are implemented with regular expressions and support both directions (Zenn → dev.to and dev.to → Zenn).
-
-### Frontmatter Conversion
-
-Frontmatter also differs between platforms.
+Frontmatter differs too:
 
 ```yaml
 # Zenn
@@ -249,33 +161,24 @@ canonical_url: https://zenn.dev/asherish/articles/slug
 ---
 ```
 
-The `canonical_url` is automatically added to the dev.to side, pointing to the Zenn article as the canonical URL. This avoids duplicate content issues for SEO. Also, since dev.to has a limit of 4 tags maximum, only the first 4 topics from Zenn are used.
+A `canonical_url` pointing to the Zenn article is added automatically to avoid SEO duplicate-content issues. dev.to limits tags to 4, so only the first 4 Zenn topics are carried over.
 
-## Preview
+## Local Preview
 
-### Zenn Preview
-
-Uses Zenn CLI's built-in preview server.
+Both platforms can be previewed locally:
 
 ```bash
-npm run preview  # localhost:18000
+npm run preview        # Zenn  → localhost:18000
+npm run preview:devto  # dev.to → localhost:13000
 ```
 
-### dev.to Preview
+The Zenn preview uses the official Zenn CLI. The dev.to preview is a lightweight HTTP server that renders `articles_en/` Markdown with `marked` in a dev.to-like layout. Ports are offset by 10,000 from the usual 8000/3000 to avoid clashing with Next.js or Express dev servers.
 
-To preview dev.to articles, I implemented a simple HTTP server. It renders Markdown files in `articles_en/` using the `marked` library and displays them with a dev.to-like appearance.
+## Publishing with GitHub Actions
 
-```bash
-npm run preview:devto  # localhost:13000
-```
+**Zenn** has no publish API — it polls your linked GitHub repo and imports `articles/` automatically. Just `git push` and you're done.
 
-The port numbers are 18000 / 13000, which are the conventional 8000 / 3000 plus 10000. This prevents port conflicts with development servers like Next.js or Express.
-
-## Automated Publishing with GitHub Actions
-
-Zenn does not have an API for publishing articles. Zenn's publishing mechanism is a pull-based system where Zenn polls the linked GitHub repository and directly imports content from `articles/`. Therefore, no Zenn publishing logic is included in this repository. Just `git push` and Zenn picks it up automatically.
-
-On the other hand, dev.to exposes a REST API (`POST /api/articles`, `PUT /api/articles/{id}`), so GitHub Actions can proactively create and update articles. When files under `articles_en/` are pushed to the `main` branch, GitHub Actions triggers.
+**dev.to** has a REST API, so a GitHub Actions workflow handles it. It triggers on pushes to `main` that touch `articles_en/`:
 
 ```yaml
 on:
@@ -284,22 +187,22 @@ on:
     paths: ['articles_en/**']
 ```
 
-The workflow consists of the following steps:
+The workflow runs three steps:
 
-1. **Validation**: Checks that the `published` status matches between the Japanese and English articles. If only one side has `published: true`, it could cause an accidental publication, so the workflow stops upon detecting this inconsistency
-2. **Publish via dev.to API**: Publishes the English article via the dev.to API. First time uses `POST /articles` for creation, subsequent times use `PUT /articles/{id}` for updates
-3. **Update mapping**: Saves the mapping between article slugs and dev.to article IDs in `.devto-mapping.json` and commits it. This allows updating the same article in future runs
+1. **Validate** — Checks that `published` status matches between the JP and EN articles. A mismatch (one side `true`, the other `false`) would cause an accidental publish, so the workflow stops.
+2. **Publish** — Calls `POST /api/articles` (first time) or `PUT /api/articles/{id}` (updates) on the dev.to API.
+3. **Save mapping** — Commits the slug → dev.to article ID mapping to `.devto-mapping.json` so future runs can update the same article.
 
 ## Scheduled Publishing
 
-A mechanism for automatically publishing articles on a specific date is also provided. Add `scheduled_publish_date` to the frontmatter of both articles.
+Want to publish on a specific date? Add `scheduled_publish_date` to both articles' frontmatter:
 
 ```yaml
 published: false
 scheduled_publish_date: "2026-03-15"
 ```
 
-A GitHub Actions cron job runs daily at 00:05 JST, and when an article's scheduled date has passed, it automatically rewrites `published: false` to `published: true`, publishes the English version via the dev.to API, commits, and pushes. Zenn picks up the change automatically via GitHub integration.
+A GitHub Actions cron runs daily at 00:05 JST. When the date arrives, it flips `published` to `true`, publishes the EN version via the dev.to API, and commits. Zenn picks up the change automatically.
 
 ```
 scheduled-publish.yml (daily cron at 00:05 JST)
@@ -314,43 +217,31 @@ commit & push
   └→ Zenn auto-publish (GitHub integration)
 ```
 
-To check the scheduling status locally:
+Check scheduling status locally with `npm run schedule:check`.
 
-```bash
-npm run schedule:check
-```
+### Why Not Zenn's Built-in Scheduling?
 
-### Why Not Use Zenn's Native Scheduled Publishing?
-
-Zenn has a native scheduled publishing feature that combines `published: true` with `published_at`. However, this mechanism requires setting `published: true` on the Zenn side first. Meanwhile, dev.to has no equivalent feature — setting `published: true` immediately publishes the article.
-
-This means that using Zenn's native scheduling would create an inconsistent state where the Zenn article has `published: true` while the dev.to article has `published: false`, causing the validation script (`validate-published.ts`) to throw an error. To maintain the design principle of always keeping the `published` status consistent across both platforms, we adopted a unified approach using a custom `scheduled_publish_date` field, with a cron job that publishes both sides simultaneously.
+Zenn supports scheduling via `published: true` + `published_at`, but it requires `published: true` upfront. dev.to has no equivalent — `published: true` goes live immediately. Using Zenn's native scheduling would leave the two platforms out of sync, which trips the validation script. Instead, a custom `scheduled_publish_date` field keeps both sides in sync, and the cron publishes them simultaneously.
 
 ## Claude Code Skills
 
-This repository includes skill files for Claude Code.
+The repo ships three Claude Code skill files:
 
-| Skill | Trigger | Description |
-|-------|---------|-------------|
-| `sync` | `/sync` command | Bidirectional translation sync (change detection, translation, syntax conversion, state updates) |
-| `zenn-syntax` | When editing files under `articles/` | Zenn Markdown syntax reference |
-| `devto-syntax` | When editing files under `articles_en/` | dev.to Liquid tag syntax reference |
+| Skill | Trigger | What it does |
+|-------|---------|--------------|
+| `sync` | `/sync` command | Bidirectional translation sync |
+| `zenn-syntax` | Editing `articles/` | Loads Zenn syntax reference |
+| `devto-syntax` | Editing `articles_en/` | Loads dev.to syntax reference |
 
-`zenn-syntax` and `devto-syntax` are automatically loaded when editing files in their corresponding directories. This allows using platform-specific syntax correctly when writing articles with Claude Code.
+The syntax skills auto-load when you're editing in the corresponding directory, so Claude Code always knows which platform's Markdown to use. Permissions for script execution and file I/O are pre-approved in `.claude/settings.json` so background agents can translate in parallel without blocking on approval prompts.
 
-Additionally, `.claude/settings.json` auto-allows permissions for sync script execution and article file read/write operations. This ensures that background agents don't get blocked by permission approval prompts when translating multiple articles in parallel.
+## Wrapping Up
 
-## Summary
-
-By building this repository, the following workflow was achieved:
+My daily workflow now looks like this:
 
 1. Write an article in Japanese in `articles/`
-2. Generate the English version with `/sync`
+2. Run `/sync` to generate the English version
 3. Preview with `npm run preview` / `npm run preview:devto`
-4. Publish to both Zenn and dev.to with `git push`
+4. `git push` — published on both Zenn and dev.to
 
-By implementing translation as a Claude Code skill, API key management became unnecessary, and translation results can be reviewed and corrected on the spot. Thanks to the diff sync mechanism, manual adjustments to translations won't be overwritten in the next sync. Overall, I can now focus on what matters most — writing articles in Japanese.
-
----
-**Notes:**
-1. Footnote content
+Since Claude Code handles the translation directly, there's no API key to manage, and I can review and tweak translations on the spot. The diff sync mechanism means manual edits to translations survive the next sync. The result: I just write in Japanese and everything else is automated.
