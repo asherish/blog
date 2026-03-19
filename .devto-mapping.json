@@ -1,5 +1,8 @@
 {
   "ubuntu-desktop-freeze-on-login": {
     "devtoId": 3340142
+  },
+  "nvidia-driver-without-cuda": {
+    "devtoId": 3372774
   }
 }

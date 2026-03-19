@@ -1,9 +1,8 @@
 ---
 title: "Installing NVIDIA Drivers Without CUDA"
-published: false
+published: true
 tags: NVIDIA, CUDA, Ubuntu, Linux
 canonical_url: https://zenn.dev/asherish/articles/nvidia-driver-without-cuda
-scheduled_publish_date: "2026-03-20"
 ---
 
 ## Motivation
