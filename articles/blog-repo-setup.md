@@ -3,8 +3,7 @@ title: "Zenn と dev.to に同時公開するブログ基盤を作った"
 emoji: "🏗️"
 type: "tech"
 topics: ["Zenn", "devto", "ClaudeCode", "GitHubActions"]
-published: false
-scheduled_publish_date: "2026-03-21"
+published: true
 ---
 
 この記事は、Zenn（日本語）と dev.to（英語）の 2 つのプラットフォームに、1 回の `git push` で同時に公開されています。その仕組みを紹介します。

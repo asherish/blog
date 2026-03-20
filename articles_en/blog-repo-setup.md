@@ -1,8 +1,7 @@
 ---
 title: "Building a Dual-Publishing Blog Platform for Zenn and dev.to"
-published: false
+published: true
 tags: Zenn, devto, ClaudeCode, GitHubActions
-scheduled_publish_date: "2026-03-21"
 canonical_url: https://zenn.dev/asherish/articles/blog-repo-setup
 ---
 

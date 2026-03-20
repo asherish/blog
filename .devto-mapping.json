@@ -4,5 +4,8 @@
   },
   "nvidia-driver-without-cuda": {
     "devtoId": 3372774
+  },
+  "blog-repo-setup": {
+    "devtoId": 3377434
   }
 }
