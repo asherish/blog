@@ -3,8 +3,7 @@ title: "Kaggle コンペ通知ボットを作った"
 emoji: "🔔"
 type: "tech"
 topics: ["Kaggle", "Python", "GitHubActions", "Discord"]
-published: false
-scheduled_publish_date: "2026-06-17"
+published: true
 ---
 
 Kaggle のコンペティション情報を自動で取得し、Email・Slack・Discord に通知するツール「kaggle-dingdong」を作りました。GitHub Actions で毎日定時に実行され、新しいコンペが公開されると通知が届く仕組みです。
