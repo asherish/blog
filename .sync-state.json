@@ -31,8 +31,7 @@
     "enHash": "2bc054fbb30039f55d3787c5224ed8fe84fda14a33c8a8d06f38903f3d61b535"
   },
   "nvidia-driver-without-cuda": {
-    "jaHash": "b06d09a1816d5f1da62a4daae64accc8dc33feae4669624da9c9320ebb7bc372",
-    "enHash": "63ce7a75f1e7a16a388b849aae3e0df2c603d426a7e3c80b457fd8dfa9c43af5"
+    "jaHash": "281d9c00608a70021a7268b091fc669d1397173a655a5a8abada5bc65e312c91"
   },
   "ssh-copy-id": {
     "jaHash": "25daf3dc8f9e1954ba2b6cfda34a2029826a7245526a7843fc5eb8237c392385",

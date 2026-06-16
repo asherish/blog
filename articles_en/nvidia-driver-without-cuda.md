@@ -204,7 +204,7 @@ wget https://developer.download.nvidia.com/compute/cuda/repos/<distro>/x86_64/cu
 sudo mv cuda-<distro>.pin /etc/apt/preferences.d/cuda-repository-pin-600
 
 # network
-wget https://developer.download.nvidia.com/compute/cuda/repos/{% katex inline %}distro/{% endkatex %}arch/cuda-keyring_1.1-1_all.deb
+wget https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch/cuda-keyring_1.1-1_all.deb
 sudo dpkg -i cuda-keyring_1.1-1_all.deb
 sudo apt-get install cuda-drivers-<branch>
 ```
