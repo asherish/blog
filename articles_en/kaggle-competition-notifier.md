@@ -3,6 +3,7 @@ title: "Building a Kaggle Competition Notification Bot"
 published: false
 tags: Kaggle, Python, GitHubActions, Discord
 canonical_url: https://zenn.dev/asherish/articles/kaggle-competition-notifier
+scheduled_publish_date: "2026-06-17"
 ---
 
 I built a tool called "kaggle-dingdong" that automatically fetches Kaggle competition information and sends notifications to Email, Slack, and Discord. It runs daily on a schedule via GitHub Actions, and you get notified whenever a new competition is published.
