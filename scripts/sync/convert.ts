@@ -76,15 +76,58 @@ export function convertFootnotes(markdown: string): string {
   return withoutDefs.trimEnd() + "\n" + notesSection + "\n";
 }
 
+// Mask fenced code blocks and inline code spans, run the given transform, then
+// restore them. This keeps prose-level conversions from rewriting example
+// syntax shown verbatim inside code (e.g. a `$...$` cell in a table that
+// documents the conversions themselves).
+function withCodeProtected(
+  markdown: string,
+  transform: (text: string) => string
+): string {
+  // Delimit placeholders with Private Use Area characters (built in code so no
+  // non-printable literal lives in the source). These never occur in article
+  // text and are not matched by any of the conversions.
+  const OPEN = String.fromCharCode(0xe000);
+  const CLOSE = String.fromCharCode(0xe001);
+
+  const stash: string[] = [];
+  const hold = (s: string): string => {
+    const token = `${OPEN}${stash.length}${CLOSE}`;
+    stash.push(s);
+    return token;
+  };
+
+  // Fenced code blocks first (``` or ~~~), including the fences.
+  let masked = markdown.replace(
+    /^([ \t]*)(`{3,}|~{3,})[^\n]*\n[\s\S]*?^[ \t]*\2[ \t]*$/gm,
+    (m) => hold(m)
+  );
+  // Then inline code spans (a run of backticks, content, matching run).
+  masked = masked.replace(/(`+)(?:[\s\S]*?[^`])?\1(?!`)/g, (m) => hold(m));
+
+  const result = transform(masked);
+
+  const restore = new RegExp(`${OPEN}(\\d+)${CLOSE}`, "g");
+  return result.replace(restore, (_m, i) => stash[Number(i)]);
+}
+
 export function convertZennToDevto(markdown: string): string {
-  let result = markdown;
-  result = convertDetails(result);
-  result = convertMessages(result);
-  result = convertBlockMath(result);
-  result = convertInlineMath(result);
-  result = convertCodeFilenames(result);
-  result = convertImageWidth(result);
-  result = convertFootnotes(result);
+  // Run the code-filename conversion first: it rewrites real fenced-code
+  // openers (```lang:file), which must stay visible before code is masked.
+  let result = convertCodeFilenames(markdown);
+
+  // Apply the remaining prose-level conversions with code spans protected.
+  result = withCodeProtected(result, (text) => {
+    let r = text;
+    r = convertDetails(r);
+    r = convertMessages(r);
+    r = convertBlockMath(r);
+    r = convertInlineMath(r);
+    r = convertImageWidth(r);
+    r = convertFootnotes(r);
+    return r;
+  });
+
   return result;
 }
 
