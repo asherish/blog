@@ -14,8 +14,9 @@ const MAPPING_PATH = path.resolve(
 // --- Sync State (.sync-state.json) ---
 
 export interface SyncEntry {
+  // Hash of the Japanese source. The English article is a generated artifact,
+  // so only the source side is tracked to detect when a re-localize is needed.
   jaHash: string;
-  enHash: string;
 }
 
 export type SyncState = Record<string, SyncEntry>;

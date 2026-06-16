@@ -80,11 +80,11 @@ Use HTML `<img>` tag for width control:
 
 ## Translation Pipeline
 
-Articles in `articles_en/` are synced from Zenn articles via the `/sync` Claude Code skill:
+Articles in `articles_en/` are generated one-way from the Japanese Zenn articles via the `/translate` Claude Code skill:
 
 ```
-/sync                    # Sync all changed articles
-/sync slug-name          # Sync a specific article
+/translate               # Localize all changed articles
+/translate slug-name     # Localize a specific article
 ```
 
-Manual edits should be limited to post-translation adjustments (fixing translation issues, adjusting platform-specific syntax).
+Japanese is the single source of truth and English is a generated artifact: make all content fixes in `articles/` and re-run `/translate`. Do not hand-edit `articles_en/`, since the next run regenerates it.

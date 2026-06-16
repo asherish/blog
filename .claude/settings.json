@@ -1,10 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npx tsx scripts/sync-detect.ts)",
-      "Bash(npx tsx scripts/sync-detect.ts *)",
-      "Bash(npx tsx scripts/sync-apply.ts)",
-      "Bash(npx tsx scripts/sync-apply.ts *)",
+      "Bash(npx tsx scripts/translate-detect.ts)",
+      "Bash(npx tsx scripts/translate-detect.ts *)",
+      "Bash(npx tsx scripts/translate-apply.ts)",
+      "Bash(npx tsx scripts/translate-apply.ts *)",
       "Read(articles/*)",
       "Read(articles_en/*)",
       "Write(articles/*)",

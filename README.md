@@ -2,16 +2,16 @@
 
 Zenn (Japanese) + dev.to (English) dual-publishing blog platform.
 
-Write articles in either language, bidirectionally sync translations with Claude Code `/sync` skill, and publish to both platforms.
+Write articles in Japanese, generate native-quality English versions one-way with the Claude Code `/translate` skill, and publish to both platforms.
 
 ## Architecture
 
 ```
-Write/edit article (JP or EN)
+Write/edit article (Japanese)
   ↓
-/sync                    ← Claude Code translates and syncs bidirectionally
+/translate               ← Claude Code rewrites JP → native English (dev.to)
   ↓
-articles/ + articles_en/ updated
+articles_en/ regenerated
   ↓
 Preview both             ← Zenn (JP) localhost:18000 + dev.to (EN) localhost:13000
   ↓
@@ -60,35 +60,33 @@ npm run new:article
 
 ### 2. Write the article
 
-Edit the generated file in `articles/` (Japanese) or `articles_en/` (English). Set `published: true` in the frontmatter when ready.
+Edit the generated file in `articles/` (Japanese). Japanese is the single source of truth — the English version is generated from it. Set `published: true` in the frontmatter when ready.
 
-### 3. Sync translations
+### 3. Localize to English
 
-Use the Claude Code `/sync` skill:
+Use the Claude Code `/translate` skill:
 
 ```
-/sync                    # Sync all changed articles
-/sync my-article         # Sync a specific slug
-/sync --prefer ja        # Resolve conflicts using JP as source
-/sync --prefer en        # Resolve conflicts using EN as source
+/translate               # Localize all changed articles
+/translate my-article    # Localize a specific slug
 ```
 
-The sync skill detects which side changed and translates accordingly:
+`/translate` reads the Japanese source (and the existing English, if any), then rewrites the article as native-quality English — not a literal translation. It detects what needs work via SHA-256 hashing of the Japanese source:
 
 | Scenario | Action |
 |---|---|
-| JP only exists | Full translate JP → EN |
-| EN only exists | Full translate EN → JP |
-| JP changed | Diff sync JP → EN |
-| EN changed | Diff sync EN → JP |
-| Both changed | Conflict — use `--prefer ja` or `--prefer en` to resolve |
-| Neither changed | Skip |
+| No English exists | Full rewrite JP → EN |
+| Japanese changed | Revise the existing English, or full rewrite if changes are large |
+| Japanese unchanged | Skip |
+| English with no Japanese source | Reported as an orphan (never touched) |
 
-You can also run detection only (without translation) via:
+The English article is a generated artifact: make all content fixes in `articles/` and re-run `/translate`. Do not hand-edit `articles_en/`.
+
+You can also run detection only (without localizing) via:
 
 ```bash
-npm run sync                    # Detect changes (JSON output)
-npm run sync -- my-article      # Detect for a specific slug
+npm run translate                    # Detect changes (JSON output)
+npm run translate -- my-article      # Detect for a specific slug
 ```
 
 ### 4. Preview
@@ -133,11 +131,11 @@ npm run schedule:check
 ```
 blog/
 ├── .claude/
-│   ├── settings.json               # Permission auto-allow for sync scripts
+│   ├── settings.json               # Permission auto-allow for translate scripts
 │   └── skills/
 │       ├── zenn-syntax.md          # Zenn Markdown syntax skill
 │       ├── devto-syntax.md         # dev.to Markdown syntax skill
-│       └── sync/SKILL.md           # Bidirectional translation sync skill (/sync)
+│       └── translate/SKILL.md      # One-way JP→EN localization skill (/translate)
 ├── .github/workflows/
 │   ├── publish-to-devto.yml      # Validate + publish to dev.to on push
 │   └── scheduled-publish.yml     # Daily cron to publish scheduled articles
@@ -145,16 +143,16 @@ blog/
 ├── articles_en/                  # Translated articles (English, for dev.to)
 ├── books/                        # Zenn books
 ├── scripts/
-│   ├── sync-detect.ts            # Change detection script (JSON output)
-│   ├── sync-apply.ts             # Post-translation processing script
+│   ├── translate-detect.ts       # Change detection script (JSON output)
+│   ├── translate-apply.ts        # Post-localization processing script
 │   ├── sync/
-│   │   ├── convert.ts            # Zenn ↔ dev.to syntax conversion
-│   │   └── state.ts              # Sync state & mapping persistence
+│   │   ├── convert.ts            # Zenn → dev.to syntax conversion
+│   │   └── state.ts              # Localization state & mapping persistence
 │   ├── publish-to-devto.ts       # dev.to publishing script
 │   ├── process-scheduled.ts      # Scheduled publish processor
 │   ├── validate-published.ts     # Pre-publish validation
 │   └── preview-devto.ts          # dev.to preview server
-├── .sync-state.json              # Per-article hash tracking for sync
+├── .sync-state.json              # Per-article Japanese-source hash tracking
 ├── .devto-mapping.json           # dev.to article ID tracking
 ├── package.json
 └── tsconfig.json
@@ -167,30 +165,30 @@ blog/
 | `npm run new:article` | Create a new Zenn article scaffold |
 | `npm run preview` | Start Zenn preview server (localhost:18000) |
 | `npm run preview:devto` | Start dev.to preview server (localhost:13000) |
-| `npm run sync` | Detect translation changes (JSON output) |
-| `npm run sync:apply` | Apply post-translation processing |
+| `npm run translate` | Detect localization changes (JSON output) |
+| `npm run translate:apply` | Apply post-localization processing |
 | `npm run schedule:check` | Check and process scheduled articles |
 | `npm run validate` | Validate published status consistency |
 | `npm run publish:devto` | Manually publish to dev.to |
 
 ## Claude Code Skills
 
-This project includes custom Claude Code skills for platform-specific Markdown syntax and translation:
+This project includes custom Claude Code skills for platform-specific Markdown syntax and localization:
 
 | Skill | Trigger | Description |
 |---|---|---|
-| `sync` | `/sync` command | Bidirectional translation sync between JP ↔ EN |
+| `translate` | `/translate` command | One-way JP→EN native localization |
 | `zenn-syntax` | Editing `articles/**/*.md` | Zenn Markdown syntax reference (message boxes, accordions, embeds, etc.) |
 | `devto-syntax` | Editing `articles_en/**/*.md` | dev.to Liquid tag syntax reference (details, katex, embeds, etc.) |
 
-Skills are automatically activated when working with files in the corresponding directories. The `sync` skill is invoked manually via `/sync`.
+Skills are automatically activated when working with files in the corresponding directories. The `translate` skill is invoked manually via `/translate`.
 
 ## Notes
 
 - Scheduled publishing uses `scheduled_publish_date` in frontmatter — a daily cron job auto-publishes when the date arrives
-- Articles with `published: false` are skipped during publishing (sync works regardless of published status)
-- Sync uses SHA-256 hashing for change detection — unchanged articles are not re-translated
-- Diff sync only updates changed sections, preserving manual edits in the target language
+- Articles with `published: false` are skipped during publishing (localization works regardless of published status)
+- Localization uses SHA-256 hashing of the Japanese source for change detection — unchanged articles are not re-localized
+- The English article is a generated artifact; make all content fixes in the Japanese source and re-run `/translate`
 - `canonical_url` is automatically set to the Zenn article URL
 - dev.to tags are limited to 4 (dev.to platform restriction)
 - Images should use absolute URLs for cross-platform compatibility
